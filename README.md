@@ -14,11 +14,15 @@ Five packages, each independently installable:
 | **pixelrag-embed**  | Tiles → vectors → FAISS index (three independent tools)         | `uv sync --package pixelrag-embed`  |
 | **pixelrag-index**  | Orchestrates the full pipeline: source → ingest → embed → index | `uv sync --package pixelrag-index`  |
 | **pixelrag-serve**  | FAISS search API (FastAPI, CPU or GPU)                          | `uv sync --package pixelrag-serve`  |
-| **pixelrag-train**  | LoRA fine-tuning for Qwen3-VL-Embedding                    | `uv sync --package pixelrag-train`  |
+| **pixelrag-train**  | LoRA fine-tuning for Qwen3-VL-Embedding                    | `cd train && uv sync`               |
 
 ```
 render ←── index ──→ embed       serve (independent)       train → serve (HTTP)
 ```
+
+`render`/`embed`/`index`/`serve` share the root workspace. **`train` is a separate
+uv project** with its own pinned env (`torch==2.9.1+cu129`, `transformers==4.57.1`,
+cuDNN 9.20) — install it from inside `train/`, not from the root.
 
 ## Quick Start
 
