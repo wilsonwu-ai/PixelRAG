@@ -9,6 +9,7 @@ import { groupHitsByArticle } from "@/lib/types"
 import type { Hit, ArticleGroup } from "@/lib/types"
 import { SearchBar } from "@/components/SearchBar"
 import { SearchControls, type SearchOptions } from "@/components/SearchControls"
+import { ModeToggle, type QueryMode } from "@/components/ModeToggle"
 import { ResultGroup } from "@/components/ResultGroup"
 import { ComparePanel } from "@/components/ComparePanel"
 import { Lightbox } from "@/components/Lightbox"
@@ -35,10 +36,17 @@ function SearchPageContent() {
   const [searchOptions, setSearchOptions] = React.useState<SearchOptions>({
     n_docs: 20,
   })
+  const [mode, setMode] = React.useState<QueryMode>("search")
 
   const handleSearchRef = React.useRef<((query: string, image?: string) => void) | null>(null)
 
   async function handleSearch(query: string, image?: string) {
+    // Ask mode → hand off to the agent conversation with the query
+    if (mode === "ask" && query) {
+      router.push(`/chat?q=${encodeURIComponent(query)}`)
+      return
+    }
+
     setIsLoading(true)
     setError(null)
     setSelectedHits(new Set())
@@ -154,10 +162,15 @@ function SearchPageContent() {
             </p>
           </div>
         )}
-        <div className={`w-full max-w-2xl ${hasSearched && (groups.length > 0 || error) ? "" : "reveal"}`} style={{ animationDelay: "240ms" }}>
-          <SearchBar onSearch={handleSearch} onReset={resetSearch} isLoading={isLoading} hasResults={hasSearched && groups.length > 0} defaultValue={initialQuery} />
+        {!(hasSearched && groups.length > 0) && (
+          <div className="reveal" style={{ animationDelay: "220ms" }}>
+            <ModeToggle mode={mode} onChange={setMode} />
+          </div>
+        )}
+        <div className={`w-full max-w-2xl ${hasSearched && (groups.length > 0 || error) ? "" : "reveal"}`} style={{ animationDelay: "280ms" }}>
+          <SearchBar onSearch={handleSearch} onReset={resetSearch} isLoading={isLoading} hasResults={hasSearched && groups.length > 0} defaultValue={initialQuery} mode={mode} />
         </div>
-        {!(hasSearched && groups.length > 0) && <SearchControls options={searchOptions} onChange={setSearchOptions} />}
+        {mode === "search" && !(hasSearched && groups.length > 0) && <SearchControls options={searchOptions} onChange={setSearchOptions} />}
       </div>
 
       {/* Status bar */}

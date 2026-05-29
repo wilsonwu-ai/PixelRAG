@@ -14,6 +14,9 @@ import { tileUrl } from "@/lib/api"
 import { motion, AnimatePresence } from "framer-motion"
 import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
+import { Suspense } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { ModeToggle } from "@/components/ModeToggle"
 
 interface SearchResult {
   query: string
@@ -50,13 +53,17 @@ const EXAMPLES = [
   { q: "What causes the northern lights?", icon: "04" },
 ]
 
-export default function ChatPage() {
+function ChatPageInner() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [messages, setMessages] = React.useState<ChatMessage[]>([])
   const [input, setInput] = React.useState("")
   const [isStreaming, setIsStreaming] = React.useState(false)
   const messagesEndRef = React.useRef<HTMLDivElement>(null)
   const inputRef = React.useRef<HTMLTextAreaElement>(null)
   const abortRef = React.useRef<AbortController | null>(null)
+  const handleSendRef = React.useRef<((text?: string) => void) | null>(null)
+  const didInitRef = React.useRef(false)
 
   function scrollToBottom() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -65,6 +72,22 @@ export default function ChatPage() {
   React.useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  React.useEffect(() => {
+    handleSendRef.current = handleSend
+  })
+
+  // Auto-send query handed off from the Search page (Ask mode)
+  React.useEffect(() => {
+    if (didInitRef.current) return
+    const q = searchParams.get("q")
+    if (q) {
+      didInitRef.current = true
+      router.replace("/chat", { scroll: false })
+      handleSendRef.current?.(q)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function handleSend(text?: string) {
     const query = (text ?? input).trim()
@@ -140,7 +163,7 @@ export default function ChatPage() {
     <div className="chat-page flex h-[calc(100vh-3.5rem)] flex-col">
       <div className="flex-1 overflow-y-auto">
         {isEmpty ? (
-          <EmptyState onExample={handleSend} />
+          <EmptyState onExample={handleSend} onSearchMode={() => router.push("/")} />
         ) : (
           <div className="mx-auto max-w-[720px] px-5 py-8">
             <AnimatePresence initial={false}>
@@ -188,9 +211,17 @@ export default function ChatPage() {
   )
 }
 
+export default function ChatPage() {
+  return (
+    <Suspense fallback={null}>
+      <ChatPageInner />
+    </Suspense>
+  )
+}
+
 /* ─── Empty State ─── */
 
-function EmptyState({ onExample }: { onExample: (q: string) => void }) {
+function EmptyState({ onExample, onSearchMode }: { onExample: (q: string) => void; onSearchMode: () => void }) {
   return (
     <div className="relative flex h-full flex-col items-center justify-center px-6">
       {/* Background mesh */}
@@ -223,8 +254,13 @@ function EmptyState({ onExample }: { onExample: (q: string) => void }) {
         </motion.p>
       </div>
 
+      {/* Mode toggle */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }} className="relative z-10 mt-8">
+        <ModeToggle mode="ask" onChange={(m) => { if (m === "search") onSearchMode() }} />
+      </motion.div>
+
       {/* Examples */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="relative z-10 mt-12 grid w-full max-w-lg grid-cols-2 gap-3">
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="relative z-10 mt-8 grid w-full max-w-lg grid-cols-2 gap-3">
         {EXAMPLES.map(({ q, icon }) => (
           <button
             key={q}

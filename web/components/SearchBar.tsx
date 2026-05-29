@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Search, X, ImagePlus, ArrowLeft, Clock } from "lucide-react"
+import { Search, X, ImagePlus, ArrowLeft, Clock, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { getHistory, clearHistory } from "@/lib/history"
@@ -20,9 +20,10 @@ interface SearchBarProps {
   isLoading: boolean
   hasResults?: boolean
   defaultValue?: string
+  mode?: "search" | "ask"
 }
 
-export function SearchBar({ onSearch, onReset, isLoading, hasResults, defaultValue = "" }: SearchBarProps) {
+export function SearchBar({ onSearch, onReset, isLoading, hasResults, defaultValue = "", mode = "search" }: SearchBarProps) {
   const [query, setQuery] = React.useState(defaultValue)
   const [imageData, setImageData] = React.useState<string | undefined>()
   const [imageName, setImageName] = React.useState<string>("")
@@ -145,7 +146,7 @@ export function SearchBar({ onSearch, onReset, isLoading, hasResults, defaultVal
             onBlur={() => {
               blurTimeoutRef.current = setTimeout(() => setShowHistory(false), 150)
             }}
-            placeholder="Search Wikipedia with pixels..."
+            placeholder={mode === "ask" ? "Ask anything about Wikipedia..." : "Search Wikipedia with pixels..."}
             className="w-full border-0 bg-transparent pr-10 shadow-none focus-visible:ring-0 focus-visible:border-transparent"
           />
           <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
@@ -162,17 +163,19 @@ export function SearchBar({ onSearch, onReset, isLoading, hasResults, defaultVal
             if (file) handleFile(file)
           }}
         />
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <ImagePlus className="h-4 w-4" />
-        </Button>
+        {mode === "search" && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <ImagePlus className="h-4 w-4" />
+          </Button>
+        )}
         <Button type="submit" size="default" disabled={isLoading || (!query.trim() && !imageData)}>
-          <Search className="h-4 w-4" />
-          {isLoading ? "Searching..." : "Search"}
+          {mode === "ask" ? <Sparkles className="h-4 w-4" /> : <Search className="h-4 w-4" />}
+          {mode === "ask" ? "Ask" : isLoading ? "Searching..." : "Search"}
         </Button>
       </div>
       {/* History dropdown */}
