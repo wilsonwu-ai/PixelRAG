@@ -22,5 +22,11 @@ jobs:
         env:
           GH_PAT: ${{ github.token }}
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
-      - name: Locate export dir
-        run: find . -name "index.html" -path "*export*" 2>/dev/null | head; ls -la __sapper__ 2>/dev/null; find . -type d -name "export" 2>/dev/null | head
+      - name: Deploy to gh-pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: ./site/__sapper__/export
+          clean: true
+          clean-exclude: |
+            CNAME
