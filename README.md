@@ -115,14 +115,12 @@ pixelrag-build-index --embeddings-dir ./embeddings --output-dir ./index
 
 ## Training
 
-`pixelrag-train` LoRA/DoRA fine-tunes `Qwen/Qwen3-VL-Embedding-2B` for visual
-document retrieval (ViT LoRA + text warmup + hard negatives). The trained
-adapters are published at
-[`Chrisyichuan/wiki-screenshot-embedding-lora`](https://huggingface.co/Chrisyichuan/wiki-screenshot-embedding-lora)
-— you don't need to retrain to use the model.
+`pixelrag-train` LoRA fine-tunes `Qwen/Qwen3-VL-Embedding-2B` for visual document
+retrieval. See [`train/README.md`](train/README.md) for the full recipe.
 
-See [`train/README.md`](train/README.md) for the complete reproduction recipe
-and how to load the released checkpoint.
+The trained adapters are published at
+[`Chrisyichuan/wiki-screenshot-embedding-lora`](https://huggingface.co/Chrisyichuan/wiki-screenshot-embedding-lora/tree/main/lora_vit/ckpt200)
+— you don't need to retrain to use the model.
 
 ## License
 
