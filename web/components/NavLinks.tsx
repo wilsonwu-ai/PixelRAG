@@ -2,12 +2,12 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { ExternalLink } from "lucide-react"
 
 const links = [
   { href: "/", label: "Search" },
   { href: "/chat", label: "Agent" },
   { href: "/docs", label: "API Docs" },
-  { href: "/status", label: "Status" },
 ]
 
 export function NavLinks() {
@@ -32,6 +32,17 @@ export function NavLinks() {
           </Link>
         )
       })}
+      {/* Status page is hosted independently (GitHub Pages) so it survives
+          outages of this app — industry best practice (cf. githubstatus.com) */}
+      <a
+        href="https://status.pixelrag.ai"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+      >
+        Status
+        <ExternalLink className="h-3 w-3" />
+      </a>
     </div>
   )
 }

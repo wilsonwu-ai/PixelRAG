@@ -11,3 +11,19 @@ sites:
     expectedStatusCodes:
       - 200
       - 404
+  - name: Agent
+    url: http://api.pixelrag.ai:30010/health
+  - name: Website
+    url: https://pixelrag.ai
+
+status-website:
+  cname: status.pixelrag.ai
+  name: PixelRAG Status
+  introTitle: "PixelRAG Status"
+  introMessage: Live availability of the PixelRAG search API, tile serving, agent backend, and website. Hosted independently on GitHub Pages.
+  navbar:
+    - title: Home
+      href: https://pixelrag.ai
+    - title: GitHub
+      href: https://github.com/StarTrail-org/PixelRAG
+  theme: light
