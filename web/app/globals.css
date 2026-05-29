@@ -246,3 +246,60 @@
   background: #6366f1;
   border-radius: 1px;
 }
+
+/* ─── Chat page theme ─── */
+.chat-page {
+  --chat-bg: #0d0d0d;
+  --chat-fg: #e8e4df;
+  --chat-secondary: #9a9590;
+  --chat-muted: #5a5550;
+  --chat-border: rgba(255, 255, 255, 0.06);
+  --chat-card: rgba(255, 255, 255, 0.025);
+  --chat-card-hover: rgba(255, 255, 255, 0.04);
+  --chat-input-bg: rgba(255, 255, 255, 0.03);
+  --chat-accent: #c0956c;
+  --chat-accent-dim: rgba(192, 149, 108, 0.25);
+  --chat-accent-glow: rgba(192, 149, 108, 0.12);
+  --chat-warm: #d4a574;
+  background: var(--chat-bg);
+}
+
+.chat-input-area {
+  background: rgba(13, 13, 13, 0.95);
+  backdrop-filter: blur(20px);
+}
+
+/* Chat prose overrides */
+.chat-prose table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+}
+
+.chat-prose th,
+.chat-prose td {
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 0.5rem 0.75rem;
+}
+
+.chat-prose th {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.chat-prose tr:hover td {
+  background: rgba(255, 255, 255, 0.01);
+}
+
+/* Thin scrollbar for tile strips */
+.scrollbar-thin::-webkit-scrollbar {
+  height: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+}
