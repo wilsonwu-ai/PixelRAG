@@ -113,6 +113,17 @@ pixelrag-embed --shard-dir ./tiles --output-dir ./embeddings --gpu-ids 0,1
 pixelrag-build-index --embeddings-dir ./embeddings --output-dir ./index
 ```
 
+## Training
+
+`pixelrag-train` LoRA/DoRA fine-tunes `Qwen/Qwen3-VL-Embedding-2B` for visual
+document retrieval (ViT LoRA + text warmup + hard negatives). The trained
+adapters are published at
+[`Chrisyichuan/wiki-screenshot-embedding-lora`](https://huggingface.co/Chrisyichuan/wiki-screenshot-embedding-lora)
+— you don't need to retrain to use the model.
+
+See [`train/README.md`](train/README.md) for the complete reproduction recipe
+and how to load the released checkpoint.
+
 ## License
 
 Apache-2.0
