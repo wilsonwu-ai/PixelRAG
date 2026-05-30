@@ -10,6 +10,8 @@ import {
   Eye,
   ArrowRight,
   Maximize2,
+  Brain,
+  ChevronRight,
 } from "lucide-react"
 import { tileUrl } from "@/lib/api"
 import { motion, AnimatePresence } from "framer-motion"
@@ -41,6 +43,7 @@ interface ChatMessage {
   id: string
   role: "user" | "assistant"
   content: string
+  thinking?: string
   searches?: SearchResult[]
   searching?: string
   tiles?: TileView[]
@@ -138,6 +141,7 @@ function ChatPageInner() {
     setMessages((prev) => prev.map((m) => {
       if (m.id !== msgId) return m
       switch (event) {
+        case "thinking": return { ...m, thinking: (m.thinking || "") + (data.text as string) }
         case "text": return { ...m, content: m.content + (data.text as string) }
         case "searching": return { ...m, searching: data.query as string }
         case "search_results": return { ...m, searching: undefined, searches: [...(m.searches || []), { query: data.query as string, hits: data.hits as SearchResult["hits"] }] }
@@ -295,6 +299,9 @@ function UserMessage({ content }: { content: string }) {
 function AssistantMessage({ message, isStreaming }: { message: ChatMessage; isStreaming: boolean }) {
   return (
     <div className="mb-8">
+      {message.thinking && (
+        <ThinkingTrace text={message.thinking} active={isStreaming && !message.content} />
+      )}
       {message.searches?.map((s, i) => <SearchCard key={i} result={s} />)}
       {message.tiles && message.tiles.length > 0 && <TileGallery tiles={message.tiles} loading={message.viewingTile} />}
 
@@ -364,6 +371,69 @@ function SearchCard({ result }: { result: SearchResult }) {
         </button>
       )}
     </motion.div>
+  )
+}
+
+/* ─── Thinking Trace ─── */
+
+function ThinkingTrace({ text, active }: { text: string; active: boolean }) {
+  // Auto-expanded while reasoning streams; user can collapse/expand anytime.
+  const [open, setOpen] = React.useState(true)
+  const [userToggled, setUserToggled] = React.useState(false)
+  const bodyRef = React.useRef<HTMLDivElement>(null)
+
+  // Once the answer starts (active=false), auto-collapse unless user touched it.
+  React.useEffect(() => {
+    if (!active && !userToggled) setOpen(false)
+  }, [active, userToggled])
+
+  // Keep the streaming trace scrolled to the latest line.
+  React.useEffect(() => {
+    if (open && active && bodyRef.current) {
+      bodyRef.current.scrollTop = bodyRef.current.scrollHeight
+    }
+  }, [text, open, active])
+
+  return (
+    <div className="mb-3 overflow-hidden rounded-xl border border-[var(--chat-border)] bg-[var(--chat-card)]">
+      <button
+        onClick={() => { setOpen((o) => !o); setUserToggled(true) }}
+        className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left"
+      >
+        <Brain className={`h-3.5 w-3.5 ${active ? "text-[var(--chat-accent)]" : "text-[var(--chat-muted)]"}`} />
+        <span className="text-[12px] font-medium text-[var(--chat-secondary)]">
+          {active ? "Thinking…" : "Thought process"}
+        </span>
+        {active && (
+          <span className="flex gap-1">
+            {[0, 1, 2].map((i) => (
+              <motion.span key={i} className="h-1 w-1 rounded-full bg-[var(--chat-accent)]" animate={{ opacity: [0.2, 0.8, 0.2] }} transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.15 }} />
+            ))}
+          </span>
+        )}
+        <ChevronRight className={`ml-auto h-3.5 w-3.5 text-[var(--chat-muted)] transition-transform ${open ? "rotate-90" : ""}`} />
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div
+              ref={bodyRef}
+              className="max-h-56 overflow-y-auto border-t border-[var(--chat-border)] px-3.5 py-3 scrollbar-thin"
+            >
+              <p className="whitespace-pre-wrap font-mono text-[11.5px] leading-relaxed text-[var(--chat-muted)]">
+                {text}
+                {active && <span className="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-[var(--chat-accent)] align-middle" />}
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   )
 }
 

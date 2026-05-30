@@ -25,6 +25,7 @@ import { z } from "zod"
 const PORT = parseInt(process.env.AGENT_PORT || "30010", 10)
 const SEARCH_URL = process.env.PIXELRAG_SEARCH_URL || "http://localhost:30001"
 const MAX_BUDGET = parseFloat(process.env.CHAT_MAX_BUDGET_USD || "2.00")
+const THINKING_TOKENS = parseInt(process.env.CHAT_THINKING_TOKENS || "2000", 10)
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*"
 
 // Rate limiting — protects the subscription on a public endpoint.
@@ -209,9 +210,19 @@ const server = http.createServer(async (req, res) => {
           allowedTools: ["mcp__pixelrag__pixelrag_search", "mcp__pixelrag__pixelrag_tile"],
           maxTurns: 12,
           maxBudgetUsd: MAX_BUDGET,
+          maxThinkingTokens: THINKING_TOKENS,
+          includePartialMessages: true,
           model: "sonnet",
         },
       })) {
+        // Stream extended-thinking deltas (Claude Code-style reasoning trace)
+        if (message.type === "stream_event") {
+          const ev = message.event
+          if (ev?.type === "content_block_delta" && ev.delta?.type === "thinking_delta") {
+            send("thinking", { text: ev.delta.thinking })
+          }
+          continue
+        }
         if (message.type === "assistant" && message.message) {
           for (const block of message.message.content) {
             if (block.type === "text" && block.text) { send("text", { text: block.text }); sentText = true }
