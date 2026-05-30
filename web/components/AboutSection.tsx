@@ -29,8 +29,8 @@ export function AboutSection() {
         </h2>
         <p className="mx-auto mt-4 text-[15px] leading-relaxed text-muted-foreground">
           Text extraction throws away layout, tables, figures, and styling —
-          the very signals that make a page legible. PixelRAG embeds the{" "}
-          <span className="text-foreground">rendered screenshot</span> instead,
+          the very signals that make a page legible. PixelRAG embeds a{" "}
+          <span className="text-foreground">screenshot of the page</span> instead,
           so a single vision model retrieves across text and visual content
           alike. No OCR, no parsing, no lossy chunking.
         </p>

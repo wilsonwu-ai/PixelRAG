@@ -89,10 +89,10 @@ const endpoints: Endpoint[] = [
   {
     id: "tile",
     method: "GET",
-    path: "/tile/0/0/0",
+    path: "/tile/2840114/0/0",
     summary: "Retrieve a tile image",
     description:
-      "Serves the tile image by article_id, tile_index, and chunk_index. Returns PNG binary data.",
+      "Serves a screenshot tile by article_id, tile_index, and chunk_index. Returns PNG binary data. The example below is the top of the Albert Einstein article.",
     requestFields: [
       { name: "article_id", type: "number", required: true, description: "Wikipedia article ID" },
       { name: "tile_index", type: "number", required: true, description: "Which 8192px tile (0-based)" },
@@ -102,10 +102,10 @@ const endpoints: Endpoint[] = [
       { name: "(binary)", type: "image/png", required: true, description: "PNG image data" },
     ],
     curlPrefix: `curl http://localhost:3000/api/tile`,
-    defaultParams: "article_id=0&tile_index=0&chunk_index=0",
+    defaultParams: "article_id=2840114&tile_index=0&chunk_index=0",
     buildPath: (_body, params) => {
       const p = new URLSearchParams(params)
-      return `/tile/${p.get("article_id") || "0"}/${p.get("tile_index") || "0"}/${p.get("chunk_index") || "0"}`
+      return `/tile/${p.get("article_id") || "2840114"}/${p.get("tile_index") || "0"}/${p.get("chunk_index") || "0"}`
     },
   },
   {

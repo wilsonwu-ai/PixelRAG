@@ -51,10 +51,10 @@ interface ChatMessage {
 }
 
 const EXAMPLES = [
-  { q: "Who invented the transistor?", icon: "01" },
-  { q: "How does photosynthesis work?", icon: "02" },
-  { q: "History of the Silk Road", icon: "03" },
-  { q: "What causes the northern lights?", icon: "04" },
+  { q: "Explain Van Gogh's The Starry Night", icon: "01" },
+  { q: "How do you read the periodic table?", icon: "02" },
+  { q: "What's in our Solar System?", icon: "03" },
+  { q: "Tell me about the Taj Mahal", icon: "04" },
 ]
 
 function ChatPageInner() {

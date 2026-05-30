@@ -7,11 +7,11 @@ import { Input } from "@/components/ui/input"
 import { getHistory, clearHistory } from "@/lib/history"
 
 const EXAMPLE_QUERIES = [
-  "Nikola Tesla",
+  "The Starry Night",
+  "Periodic table",
   "Solar System",
-  "French Revolution",
-  "Great Wall of China",
-  "Claude Monet",
+  "Taj Mahal",
+  "The Great Wave off Kanagawa",
 ]
 
 interface SearchBarProps {

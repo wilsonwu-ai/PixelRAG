@@ -158,8 +158,8 @@ function SearchPageContent() {
               className="reveal relative mx-auto mt-5 max-w-md text-[15px] leading-relaxed text-muted-foreground"
               style={{ animationDelay: "160ms" }}
             >
-              Pixel-level visual retrieval over rendered Wikipedia — search
-              screenshots with text or image queries.
+              Pixel-level visual retrieval over Wikipedia screenshots — search
+              with text or an image.
             </p>
           </div>
         )}
