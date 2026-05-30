@@ -24,7 +24,7 @@ import { z } from "zod"
 
 const PORT = parseInt(process.env.AGENT_PORT || "30010", 10)
 const SEARCH_URL = process.env.PIXELRAG_SEARCH_URL || "http://localhost:30001"
-const MAX_BUDGET = parseFloat(process.env.CHAT_MAX_BUDGET_USD || "0.50")
+const MAX_BUDGET = parseFloat(process.env.CHAT_MAX_BUDGET_USD || "2.00")
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*"
 
 // Rate limiting — protects the subscription on a public endpoint.
@@ -207,7 +207,7 @@ const server = http.createServer(async (req, res) => {
           systemPrompt: SYSTEM_PROMPT,
           mcpServers: { pixelrag: mcpServer },
           allowedTools: ["mcp__pixelrag__pixelrag_search", "mcp__pixelrag__pixelrag_tile"],
-          maxTurns: 15,
+          maxTurns: 12,
           maxBudgetUsd: MAX_BUDGET,
           model: "sonnet",
         },

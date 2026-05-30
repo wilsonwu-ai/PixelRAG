@@ -11,7 +11,7 @@ WorkingDirectory=/home/yichuan/visrag/web
 Environment=HOME=/home/yichuan
 Environment=AGENT_PORT=30010
 Environment=PIXELRAG_SEARCH_URL=http://localhost:30001
-Environment=CHAT_MAX_BUDGET_USD=0.50
+Environment=CHAT_MAX_BUDGET_USD=2.00
 Environment=ALLOWED_ORIGIN=https://pixelrag.ai
 Environment=RL_PER_IP=12
 Environment=RL_GLOBAL_DAILY=500

@@ -9,6 +9,7 @@ import {
   RotateCcw,
   Eye,
   ArrowRight,
+  Maximize2,
 } from "lucide-react"
 import { tileUrl } from "@/lib/api"
 import { motion, AnimatePresence } from "framer-motion"
