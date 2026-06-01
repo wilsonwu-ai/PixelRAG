@@ -20,7 +20,7 @@
 ---
 
 ```bash
-pip install pixelrag  # TODO: not on PyPI yet — publish, then this is the one-line install
+pip install pixelrag
 ```
 
 The two core operations — **render** a page to screenshots, **search** a visual index:
