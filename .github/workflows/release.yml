@@ -1,13 +1,12 @@
 name: Release to PyPI
 
-# Publishes every PixelRAG package to PyPI via Trusted Publishing (OIDC — no API
-# tokens). Triggered by publishing a GitHub Release (tag like `v0.1.0`), or run
-# manually with dry_run to build without uploading.
-#
-# One-time setup on PyPI (per package — pixelrag, pixelrag-render, pixelrag-embed,
-# pixelrag-index, pixelrag-serve): add a "pending publisher" pointing at
-#   owner: StarTrail-org   repo: PixelRAG   workflow: release.yml   environment: pypi
-# See RELEASING.md.
+# Publishes every PixelRAG package to PyPI. Auth is a single account-scoped API token
+# stored as the `PYPI_API_TOKEN` repo secret (see RELEASING.md). Triggered by publishing
+# a GitHub Release (tag like `v0.1.0`), or run manually:
+#   - dry_run = true  → build only (no upload)
+#   - dry_run = false → build + publish
+# `--check-url` makes publishing idempotent: files already on PyPI are skipped, so a
+# partial release can be safely re-run.
 
 on:
   release:
@@ -27,9 +26,6 @@ jobs:
   release:
     name: ${{ matrix.package }}
     runs-on: ubuntu-latest
-    environment: pypi
-    permissions:
-      id-token: write # Trusted Publishing (OIDC)
     strategy:
       fail-fast: false
       matrix:
@@ -54,4 +50,6 @@ jobs:
 
       - name: Publish ${{ matrix.package }} to PyPI
         if: ${{ github.event_name == 'release' || !inputs.dry_run }}
-        run: uv publish --trusted-publishing always
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        run: uv publish --check-url https://pypi.org/simple/

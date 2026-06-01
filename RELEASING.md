@@ -13,23 +13,22 @@ PixelRAG ships as five packages, published together in lockstep:
 `pixelrag-train` is a separate local project and is **not** published.
 
 Publishing is automated by [`.github/workflows/release.yml`](.github/workflows/release.yml)
-using **PyPI Trusted Publishing** (OIDC) — no API tokens or secrets.
+using a single **account-scoped PyPI API token** stored as a repo secret.
 
 ## One-time setup
 
-1. **Create the `pypi` GitHub environment.** Repo → Settings → Environments → New
-   environment → name it `pypi` (add reviewers/protection if you want a manual gate).
+1. **Create an account-scoped PyPI API token** at
+   <https://pypi.org/manage/account/token/> — scope **"Entire account"** (required so the
+   token can create the new project names on first publish). Copy the `pypi-...` value.
 
-2. **Add a pending publisher on PyPI for each of the five projects.** Go to
-   <https://pypi.org/manage/account/publishing/> and add one per project name above with:
+2. **Store it as the `PYPI_API_TOKEN` repo secret:**
 
-   - **Owner:** `StarTrail-org`
-   - **Repository:** `PixelRAG`
-   - **Workflow name:** `release.yml`
-   - **Environment:** `pypi`
+   ```bash
+   gh secret set PYPI_API_TOKEN --repo StarTrail-org/PixelRAG
+   ```
 
-   (Do this five times — once for `pixelrag`, `pixelrag-render`, `pixelrag-embed`,
-   `pixelrag-index`, `pixelrag-serve`. Names are confirmed available on PyPI.)
+   (or repo Settings → Secrets and variables → Actions → New repository secret). One token
+   publishes all five packages — no per-package configuration.
 
 ## Cutting a release
 
