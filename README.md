@@ -4,16 +4,7 @@
 <p align="center">
   Official codebase for <b><a href="assets/pixelrag-paper.pdf">PixelRAG: Visually Grounded Retrieval-Augmented Generation with Screenshot Rendering</a></b>
 </p>
-<p align="center">
-  <a href="https://yichuan-w.github.io/">Yichuan Wang</a>*,
-  <a href="https://zhifei.li/">Zhifei Li</a>*,
-  <a href="https://zwcolin.github.io/">Zirui Wang</a>,
-  <a href="https://people.epfl.ch/paul.teiletche">Paul Teiletche</a>,
-  <a href="https://www.linkedin.com/in/lesheng-jin-9618b0201/">Lesheng Jin</a>,
-  <a href="https://people.eecs.berkeley.edu/~matei/">Matei Zaharia</a>†,
-  <a href="https://people.eecs.berkeley.edu/~jegonzal/">Joseph E. Gonzalez</a>†,
-  <a href="https://www.sewonmin.com/">Sewon Min</a>†
-</p>
+<p align="center"><a href="https://yichuan-w.github.io/">Yichuan Wang</a>*, <a href="https://zhifei.li/">Zhifei Li</a>*, <a href="https://zwcolin.github.io/">Zirui Wang</a>, <a href="https://www.linkedin.com/in/paul-teiletche/">Paul Teiletche</a>, <a href="https://www.linkedin.com/in/lesheng-jin-9618b0201/">Lesheng Jin</a>, <a href="https://people.eecs.berkeley.edu/~matei/">Matei Zaharia</a>†, <a href="https://people.eecs.berkeley.edu/~jegonzal/">Joseph E. Gonzalez</a>†, <a href="https://www.sewonmin.com/">Sewon Min</a>†</p>
 <p align="center"><sub>* Equal contribution &nbsp; † Equal advising</sub></p>
 <p align="center">Search any document by how it <em>looks</em>, not just the text it contains.</p>
 
