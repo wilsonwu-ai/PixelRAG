@@ -21,7 +21,7 @@ It keeps the same core row structure as the existing HN training data:
 ```
 
 The main difference is that the query text was filtered to be more natural and
-closer to SimpleQA-style factoid questions.
+closer to natural factoid-style questions.
 
 ### Why It Is Cleaner
 
@@ -30,7 +30,7 @@ templatic. Common issues included:
 
 - stiff openings like `In what year...` or `In which...`
 - annotation-like phrasing rather than user-style questions
-- weaker alignment with the short factoid style seen in SimpleQA
+- weaker alignment with natural short factoid style
 
 This version keeps only rows whose query passed both of these query-only filters:
 
@@ -38,7 +38,7 @@ This version keeps only rows whose query passed both of these query-only filters
 - `simpleqa_style_fit >= 4`
 
 These two scores were assigned by Gemini after comparing each query against
-reference SimpleQA questions. The model only judged the query text. It did not
+reference factoid questions. The model only judged the query text. It did not
 look at the images or answers during this cleaning step.
 
 ### How It Was Built
@@ -48,7 +48,7 @@ The pipeline was:
 1. Start from the full filtered hard-negative dataset in
    `training/data/lite-query-v2-full-filtered-hn-v2-chunks/chunk_*/filtered_hn.jsonl`.
 2. Run `clean_queries_simpleqa_style.py` over all `149,991` rows.
-3. Score each query against SimpleQA-style references with:
+3. Score each query against factoid-style references with:
    - `naturalness` on a 1-5 scale
    - `simpleqa_style_fit` on a 1-5 scale
 4. Keep only rows with `naturalness >= 4` and `simpleqa_style_fit >= 4`.
@@ -106,7 +106,7 @@ Examples of what improved:
 - fewer templatic `In what...` openings
 - more direct `What...` / `Who...` / `How many...` style questions
 - better use of disambiguating context like years, titles, roles, and places
-- closer stylistic match to `simpleqa_query_image_pairs.json`
+- closer stylistic match to natural factoid reference queries
 
 The hard-negative structure itself was not re-mined here. We retained the
 original positive image and hard negatives for each accepted row.

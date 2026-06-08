@@ -31,7 +31,7 @@ negatives, starting from raw Wikipedia screenshot tiles.
 │       │                              (chunks that actually answer   │
 │       │                               the query)                    │
 │       ▼                                                             │
-│  ⑤ clean_queries_simpleqa_style.py  Score naturalness + SimpleQA    │
+│  ⑤ clean_queries_simpleqa_style.py  Score naturalness + factoid     │
 │       │                              style fit via Gemini           │
 │       ▼                                                             │
 │  ⑥ export_natural_filtered_v2.py    Keep only naturalness≥4 &      │
@@ -236,7 +236,7 @@ Each chunk produces:
 
 ### Step 5: Clean Queries (Naturalness Scoring)
 
-Score each query on naturalness (1–5) and SimpleQA style fit (1–5) using Gemini.
+Score each query on naturalness (1–5) and factoid style fit (1–5) using Gemini.
 This step does NOT look at images — only the query text is judged.
 
 **Script:** `clean_queries_simpleqa_style.py`
