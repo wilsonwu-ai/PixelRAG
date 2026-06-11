@@ -1,0 +1,59 @@
+# Build the patched headless_shell (pixelshot turbo capture path) and attach it
+# to a `chrome-<version>` release. Manually triggered.
+#
+# NOTE: a full Chromium build needs ~100 GB disk and 1-2 h. GitHub-hosted runners
+# cannot fit it, so this targets SELF-HOSTED runners that have depot_tools, a
+# Chromium checkout, and the platform toolchain. Label your runners with
+# `chromium-build` plus the OS. macOS binaries must be codesigned/notarized
+# (add the signing step for your Apple account). See render/chrome-build/BUILD.md.
+name: chrome-build
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Chromium version tag (matches chrome.py CHROME_VERSION)"
+        required: true
+        default: "150.0.7844.0"
+      platform:
+        description: "Target platform"
+        required: true
+        type: choice
+        default: linux-x64
+        options: [linux-x64, darwin-arm64, darwin-x64, win-x64]
+
+jobs:
+  build:
+    # Pick the self-hosted runner matching the requested platform.
+    runs-on: [self-hosted, chromium-build, "${{ inputs.platform }}"]
+    timeout-minutes: 480
+    steps:
+      - name: Checkout repo (for the patch + build script)
+        uses: actions/checkout@v4
+
+      - name: Build patched headless_shell
+        shell: bash
+        env:
+          CHROMIUM_DIR: ${{ env.CHROMIUM_DIR }}   # set on the runner: path to chromium checkout
+        run: |
+          test -n "$CHROMIUM_DIR" || { echo "runner must set CHROMIUM_DIR"; exit 1; }
+          bash render/chrome-build/build-headless-shell.sh
+
+      - name: Package
+        shell: bash
+        run: |
+          BIN="$CHROMIUM_DIR/src/out/Headless"
+          mkdir -p dist
+          tar --use-compress-program=zstd -cf \
+            "dist/headless_shell-${{ inputs.platform }}.tar.zst" \
+            -C "$BIN" headless_shell headless_shell.pak 2>/dev/null \
+            || tar --use-compress-program=zstd -cf \
+               "dist/headless_shell-${{ inputs.platform }}.tar.zst" -C "$BIN" headless_shell
+
+      # macOS: add a codesign + notarize step here before upload.
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: chrome-${{ inputs.version }}
+          files: dist/headless_shell-${{ inputs.platform }}.tar.zst
