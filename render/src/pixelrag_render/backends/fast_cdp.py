@@ -119,7 +119,8 @@ async def _launch_chrome(chrome_path: str, port: int) -> tuple:
     import websockets
 
     args = (
-        [chrome_path, f"--remote-debugging-port={port}", "--headless"]
+        # `--headless=new`: bare `--headless` is deprecated and hangs on modern Chrome.
+        [chrome_path, f"--remote-debugging-port={port}", "--headless=new"]
         + CHROME_ARGS
         + ["about:blank"]
     )

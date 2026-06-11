@@ -302,7 +302,10 @@ async def _worker(
 ):
     """Async worker: owns a Chrome process, pulls URLs from queue."""
     proc = subprocess.Popen(
-        [chrome_path, f"--remote-debugging-port={port}", "--headless"]
+        # `--headless=new`: the bare `--headless` is deprecated and hangs on modern
+        # Chrome (e.g. google-chrome 149); `=new` works on both stock Chrome and the
+        # patched headless_shell.
+        [chrome_path, f"--remote-debugging-port={port}", "--headless=new"]
         + BROWSER_ARGS
         + ["about:blank"],
         stdout=subprocess.DEVNULL,
