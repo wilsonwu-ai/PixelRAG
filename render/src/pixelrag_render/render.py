@@ -86,13 +86,13 @@ def render_urls(
     Returns:
         List of Path objects pointing to created tile directories.
     """
-    if backend in ("cdp", "websocket"):
-        from .backends.websocket import render_urls as _render_urls
+    if backend in ("cdp", "websocket"):  # "websocket" kept as a back-compat alias
+        from .backends.cdp import render_urls as _render_urls
     else:
         raise ValueError(
-            f"Unknown backend: {backend!r}. Choose 'cdp' or 'websocket'."
-            " For high-throughput batch rendering with custom Chrome,"
-            " use pixelrag_render.backends.fast_cdp.render_articles() directly."
+            f"Unknown backend: {backend!r}. Choose 'cdp'."
+            " The cdp backend auto-selects a turbo capture path when a turbo-capable"
+            " Chrome is present."
         )
 
     return _render_urls(

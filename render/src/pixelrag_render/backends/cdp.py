@@ -1,13 +1,21 @@
-"""Direct websocket CDP backend for pixelshot.
+"""The CDP backend for pixelshot — the single rendering backend.
 
-No Playwright dependency — uses subprocess to launch Chrome and websockets
-to communicate via CDP directly. ~35% faster than the Playwright-based cdp.py
-backend due to eliminating the Node.js IPC layer.
+No Playwright dependency — launches Chrome via subprocess and talks CDP over a
+raw websocket. Two capture paths, selected by the Chrome binary:
+
+- STANDARD (default, portable): standard ``Page.captureScreenshot`` (JPEG over CDP).
+  Works on any stock Chrome, any OS. Used unless a turbo-capable Chrome is present.
+- TURBO: delegates to ``fast_cdp`` (rawFilePath + /dev/shm + parallel JPEG), ~2x at
+  batch scale. Used automatically when the pixelrag-installed patched ``headless_shell``
+  is selected (``chrome.is_turbo_capable``) and the request matches its capabilities.
+
+Selection is deterministic (by Chrome provenance), with no runtime probe — so a stock
+Chrome is never sent the patched-only CDP params (which would hang).
 
 Requirements: websockets, pillow (no playwright needed)
 
 Usage:
-    from pixelrag_render.backends.websocket import render_urls
+    from pixelrag_render.backends.cdp import render_urls
     tile_dirs = render_urls(["https://example.com"], "./tiles", workers=4)
 """
 
@@ -24,7 +32,7 @@ from pathlib import Path
 
 from PIL import Image
 
-logger = logging.getLogger("pixelrag_render.backends.websocket")
+logger = logging.getLogger("pixelrag_render.backends.cdp")
 
 VIEWPORT_W = 875
 VIEWPORT_H = 1080
@@ -366,6 +374,34 @@ async def _worker(
             proc.kill()
 
 
+def _derive_stems(urls: list[str], stems: list[str] | None) -> list[str]:
+    """Output-dir stem per URL (explicit stems win; else sanitize the URL).
+
+    Shared by the standard and turbo paths so both emit identical
+    ``{stem}.png.tiles`` directory names for the same inputs.
+    """
+    from urllib.parse import urlparse
+
+    out: list[str] = []
+    seen: dict[str, int] = {}
+    for i, url in enumerate(urls):
+        if stems and i < len(stems):
+            out.append(str(stems[i]))
+            continue
+        parsed = urlparse(url)
+        raw = (parsed.netloc + parsed.path).rstrip("/")
+        stem = (
+            raw.replace("/", "_").replace(":", "_").replace("?", "_").replace("&", "_")
+        )
+        stem = stem[:200] or "page"
+        count = seen.get(stem, 0)
+        seen[stem] = count + 1
+        if count > 0:
+            stem = f"{stem}_{count}"
+        out.append(stem)
+    return out
+
+
 async def _run_batch(
     urls: list[str],
     output_dir: Path,
@@ -380,26 +416,8 @@ async def _run_batch(
     chrome_path: str,
 ) -> list[Path]:
     work_queue: asyncio.Queue = asyncio.Queue()
-    seen_stems: dict[str, int] = {}
-    for i, url in enumerate(urls):
-        if stems and i < len(stems):
-            stem = str(stems[i])
-        else:
-            from urllib.parse import urlparse
-
-            parsed = urlparse(url)
-            raw = (parsed.netloc + parsed.path).rstrip("/")
-            stem = (
-                raw.replace("/", "_")
-                .replace(":", "_")
-                .replace("?", "_")
-                .replace("&", "_")
-            )
-            stem = stem[:200] or "page"
-            count = seen_stems.get(stem, 0)
-            seen_stems[stem] = count + 1
-            if count > 0:
-                stem = f"{stem}_{count}"
+    stem_list = _derive_stems(urls, stems)
+    for url, stem in zip(urls, stem_list):
         work_queue.put_nowait({"url": url, "stem": stem})
 
     stats = {"done": 0, "failed": 0}
@@ -443,12 +461,14 @@ def render_urls(
     image_format: str = "jpeg",
     from_surface: bool = True,
     wait_network_idle: bool = False,
+    turbo: bool | None = None,
     chrome_path: str | None = None,
 ) -> list[Path]:
-    """Render URLs to tiled images using direct CDP websocket.
+    """Render URLs to tiled images via CDP.
 
-    No Playwright dependency. Each worker launches its own Chrome process
-    and communicates via CDP over websocket.
+    Uses the TURBO path (fast_cdp: rawFilePath + parallel JPEG) when a turbo-capable
+    patched Chrome is present and the request matches its capture profile; otherwise
+    the portable STANDARD path. Both emit ``{stem}.png.tiles/`` with a tiles.json.
 
     Args:
         urls: URLs to capture.
@@ -462,10 +482,12 @@ def render_urls(
         from_surface: CDP fromSurface param. True for batch (throughput),
                       False for serve (low latency). Default True.
         wait_network_idle: After the load event, also wait until the network has
-                      been quiet (no new resources) for ~500ms before capturing.
-                      Helps SPAs that fetch content after load; costs a quiet
-                      window per page, so it is off by default (batch throughput)
-                      and meant for single-page / interactive renders.
+                      been quiet (~500ms) before capturing (SPAs that fetch after
+                      load). Standard path only; off by default.
+        turbo: None = auto (turbo when the Chrome is turbo-capable), True/False to
+                      force. Turbo only applies to the default capture profile
+                      (jpeg, default viewport, fromSurface, no network-idle wait);
+                      other options always use the standard path.
         chrome_path: Path to Chrome binary. Auto-detected if None.
 
     Returns:
@@ -478,6 +500,47 @@ def render_urls(
         return []
 
     chrome = chrome_path or _find_chrome()
+
+    # Turbo only covers fast_cdp's capture profile; anything else → standard path.
+    from ..chrome import is_turbo_capable
+
+    use_turbo = is_turbo_capable(chrome) if turbo is None else turbo
+    if use_turbo and (
+        image_format != "jpeg"
+        or viewport_width != VIEWPORT_W
+        or wait_network_idle
+        or not from_surface
+    ):
+        use_turbo = False
+
+    if use_turbo:
+        from .fast_cdp import render_articles
+
+        stem_list = _derive_stems(urls, stems)
+        # path "{stem}.png" makes fast_cdp emit "{stem}.png.tiles" — the same
+        # layout the standard path / CLI / index pipeline expect. fast_cdp prepends
+        # file:// to non-http inputs, so hand it a plain path for file:// URIs.
+        def _navtarget(u: str) -> str:
+            if u.startswith("http"):
+                return u
+            return u[len("file://") :] if u.startswith("file://") else u
+
+        articles = [
+            {"path": f"{stem}.png", "file": _navtarget(url)}
+            for stem, url in zip(stem_list, urls)
+        ]
+        logger.info("Using turbo (fast_cdp) path for %d URL(s)", len(urls))
+        asyncio.run(
+            render_articles(
+                articles,
+                str(output_dir),
+                chrome_path=chrome,
+                n_workers=workers,
+                tile_height=tile_height,
+                jpeg_quality=quality,
+            )
+        )
+        return [output_dir / f"{stem}.png.tiles" for stem in stem_list]
 
     return asyncio.run(
         _run_batch(
