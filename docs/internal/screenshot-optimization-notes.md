@@ -182,3 +182,58 @@ Lab machines have 8× H200/B200 GPUs but:
 
 To unlock GPU: `sudo usermod -aG render $USER` on lab machine.
 Expected impact: 4x faster DrawRenderPass based on production system data.
+
+## Backend reconciliation & SPA-render fix (2026-06-11)
+
+### The three render code paths (who actually runs what)
+- `backends/websocket.py` — the **shipped** general-purpose renderer. The `pixelshot`
+  CLI, the `pixelbrowse` skill, and the `pixelrag index` pipeline (`render_urls`,
+  `backend="cdp"`/`"websocket"`) all go through it. Simple: per-worker queue, inline
+  JPEG over CDP, no extra deps.
+- `backends/fast_cdp.py` — high-throughput batch path (`render_articles`): phased-logic
+  capture + rawFilePath to /dev/shm + ProcessPool JPEG. **No in-repo caller** — invoked
+  only by an out-of-repo ops script. The 8.28M flagship Wikipedia index was built by a
+  *separate* system (Playwright/GPU/4-machine, see "Production System Comparison"), not
+  by either of these.
+- `strategies/*` — the benchmarking menu; used only by `bench/`. Kept as research scaffolding.
+
+### Regression fixed: websocket backend rendered SPAs / tall pages wrong
+`backends/websocket.py` had drifted from the established capture pattern — it had **no
+nav-completion wait** (fired `document.fonts.ready` immediately after `Page.navigate`)
+and **no per-tile scroll**, both of which `fast_cdp` and the production strategies have.
+Consequences:
+- JS/SPA pages were measured/captured mid-hydration at a transient (often much taller)
+  layout → tiled into mostly-empty space = blank tiles (this is the "tile loop overshoots
+  page height" blank bug noted under "Production System Comparison", here root-caused).
+- At small `tile_height` (the skill uses 1568) every tile past the first was blank,
+  because content below the short device viewport is never rasterized without scrolling.
+
+Fix (verified in `bench/` against ground truth at 100% on the smoke set):
+- Wait for the `load` event before measuring/capturing (`readyState==='complete'`
+  shortcut + 12s cap). SSR pages fire `load` ~as fast as `fonts.ready`, so ~0 cost
+  (measured: Wikipedia render time unchanged).
+- Scroll each tile into view before capture (mirrors `fast_cdp`).
+- Optional `--wait-network-idle` (JS PerformanceObserver) for pages that fetch content
+  after load; off by default (costs a quiet window/page), on by default in the skill.
+
+### Raw vs inline-JPEG is the dominant throughput lever (measured, 48w, N=600, this box)
+| config | correct | t/s | note |
+|---|---|---|---|
+| phased **raw** (fast_cdp config) | 99.7% | **306** | capture-only in bench; JPEG is decoupled/parallel |
+| phased jpeg (inline) | 98.2% | 182 | Chrome encodes JPEG on the capture critical path |
+| sequential raw | 99.7% | 221 | |
+| sequential jpeg (inline) | 98.2% | 142 | |
+
+Takeaways: (1) **inline JPEG encoding is the bottleneck** — bypassing it with rawFilePath
++ parallel compression is ~+56-68%. (2) phased's semaphore/work-stealing buys ~+38% over
+sequential **in raw mode** (in jpeg mode the encoding bottleneck masks it to ~+8% — an
+earlier jpeg-only comparison was misleading). So `fast_cdp` is ~2x the simple inline path
+at batch scale and is **kept**. Absolute t/s here is optimistic (capture-only, short
+window, 128-core box) vs the ~91-113 production figure; the *ratios* are the point.
+
+### Design direction
+Ship **one simple backend** (`websocket.py`, inline JPEG) for the CLI/skill/`pixelrag index`
+— that scale doesn't need the raw+decoupled machinery, and the flagship index uses the
+separate system anyway. Keep `fast_cdp` + `strategies/` as batch/research code. The shared
+capture-readiness logic (load wait, scroll) should eventually live in one place so the
+shipped backend can't silently drift from the correct pattern again.
