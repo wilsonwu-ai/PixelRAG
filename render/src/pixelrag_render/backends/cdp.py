@@ -40,16 +40,6 @@ logger = logging.getLogger("pixelrag_render.backends.cdp")
 VIEWPORT_W = 875
 VIEWPORT_H = 1080
 
-# Default to CPU rasterization (`--disable-gpu`): it works on GPU-less and headless boxes —
-# the common case. Forcing GPU rasterization needs real GPU device access (a graphics GPU +
-# the `render` group, `sudo usermod -aG render $USER`); without it the renderer crashes and
-# CDP capture hangs forever. On a properly-configured GPU render box, set PIXELSHOT_ENABLE_GPU=1
-# for ~2x throughput (note: GPU rasterization can also produce blank captures — verify output).
-_GPU_ARGS = (
-    ["--enable-gpu-rasterization", "--force-gpu-rasterization"]
-    if os.environ.get("PIXELSHOT_ENABLE_GPU")
-    else ["--disable-gpu"]
-)
 BROWSER_ARGS = [
     "--disable-dev-shm-usage",
     "--no-sandbox",
@@ -57,7 +47,8 @@ BROWSER_ARGS = [
     "--disable-backgrounding-occluded-windows",
     "--disable-background-networking",
     "--disable-features=Translate,MediaRouter,OptimizationHints",
-    *_GPU_ARGS,
+    "--enable-gpu-rasterization",
+    "--force-gpu-rasterization",
 ]
 
 
