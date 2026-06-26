@@ -32,6 +32,7 @@ Usage:
 """
 
 import argparse
+import asyncio
 import base64
 import contextvars
 import functools
@@ -462,7 +463,10 @@ async def search(req: SearchRequest):
                 with open(tile_path, "rb") as fp:
                     img_b64 = base64.b64encode(fp.read()).decode()
             elif req.include_images and _state.get("ondemand") is not None:
-                img_b64 = _ondemand_chunk_b64(aid, ti, ci, th)
+                # Render off the event loop: _ondemand_chunk_b64 -> render_url uses
+                # asyncio.run(), which raises "cannot be called from a running event
+                # loop" if invoked directly here. Offload to a worker thread.
+                img_b64 = await asyncio.to_thread(_ondemand_chunk_b64, aid, ti, ci, th)
             # Expose a relative tile path, not the absolute server filesystem
             # path (avoids leaking the host's directory layout; clients fetch
             # tiles via /tile/{article_id}/{tile_index}/{chunk_index}).

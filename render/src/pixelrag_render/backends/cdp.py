@@ -40,6 +40,15 @@ logger = logging.getLogger("pixelrag_render.backends.cdp")
 VIEWPORT_W = 875
 VIEWPORT_H = 1080
 
+# GPU rasterization is faster but needs GPU device access — on lab machines that means
+# membership in the `render` group (`sudo usermod -aG render $USER`). Without GPU access
+# (or headless with no GPU compositor) these flags make the renderer crash and CDP capture
+# hangs forever. Set PIXELSHOT_DISABLE_GPU=1 to fall back to CPU rasterization.
+_GPU_ARGS = (
+    ["--disable-gpu"]
+    if os.environ.get("PIXELSHOT_DISABLE_GPU")
+    else ["--enable-gpu-rasterization", "--force-gpu-rasterization"]
+)
 BROWSER_ARGS = [
     "--disable-dev-shm-usage",
     "--no-sandbox",
@@ -47,8 +56,7 @@ BROWSER_ARGS = [
     "--disable-backgrounding-occluded-windows",
     "--disable-background-networking",
     "--disable-features=Translate,MediaRouter,OptimizationHints",
-    "--enable-gpu-rasterization",
-    "--force-gpu-rasterization",
+    *_GPU_ARGS,
 ]
 
 
