@@ -26,7 +26,7 @@ def test_local_source_discovers_text_files(text_dir):
     names = {d.id for d in docs}
     assert "guide" in names  # .md
     assert "notes" in names  # .txt
-    assert "page" in names   # .html
+    assert "page" in names  # .html
     assert "photo" in names  # .png
     assert "ignored" not in names  # .csv not supported
 
