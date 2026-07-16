@@ -404,35 +404,54 @@ def build(config: dict, limit: int | None = None, force: bool = False) -> Path:
             cmd += ["--backend", embed_cfg["backend"]]
     subprocess.run(cmd, check=True)
 
-    # Stage 4: Build FAISS index
-    # Auto-adjust nlist based on vector count (IVF needs nlist <= n_vectors)
-    import numpy as np
+    # Stage 4: Build the configured search index.
+    index_cfg = config.get("index", {})
+    backend = index_cfg.get("backend", "faiss")
+    cmd = [
+        sys.executable,
+        "-m",
+        "pixelrag_embed.index",
+        "build",
+        "--embeddings-dir",
+        str(embeddings_dir),
+        "--output-dir",
+        str(output),
+        "--backend",
+        backend,
+    ]
+    if backend == "qdrant":
+        logger.info("Stage 4/4: Building Qdrant collection...")
+        if index_cfg.get("qdrant_url"):
+            cmd += ["--qdrant-url", index_cfg["qdrant_url"]]
+        if index_cfg.get("collection"):
+            cmd += ["--collection", index_cfg["collection"]]
+        if index_cfg.get("client_config"):
+            cmd += ["--qdrant-client-config", index_cfg["client_config"]]
+        if index_cfg.get("quantization_config"):
+            cmd += [
+                "--qdrant-quantization-config",
+                index_cfg["quantization_config"],
+            ]
+        if index_cfg.get("append"):
+            cmd += ["--append"]
+        if index_cfg.get("recreate"):
+            cmd += ["--recreate"]
+    else:
+        # Auto-adjust nlist based on vector count (IVF needs nlist <= n_vectors)
+        import numpy as np
 
-    npz_files = sorted(embeddings_dir.glob("shard_*.npz"))
-    total_vectors = sum(
-        np.load(f, mmap_mode="r")["embeddings"].shape[0] for f in npz_files
-    )
-    nlist = min(4096, max(1, total_vectors // 40))
-    logger.info(
-        "Stage 4/4: Building FAISS index (%d vectors, nlist=%d)...",
-        total_vectors,
-        nlist,
-    )
-    subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "pixelrag_embed.index",
-            "build",
-            "--embeddings-dir",
-            str(embeddings_dir),
-            "--output-dir",
-            str(output),
-            "--nlist",
-            str(nlist),
-        ],
-        check=True,
-    )
+        npz_files = sorted(embeddings_dir.glob("shard_*.npz"))
+        total_vectors = sum(
+            np.load(f, mmap_mode="r")["embeddings"].shape[0] for f in npz_files
+        )
+        nlist = min(4096, max(1, total_vectors // 40))
+        logger.info(
+            "Stage 4/4: Building FAISS index (%d vectors, nlist=%d)...",
+            total_vectors,
+            nlist,
+        )
+        cmd += ["--nlist", str(nlist)]
+    subprocess.run(cmd, check=True)
 
     logger.info("Index built at %s", output)
     return output

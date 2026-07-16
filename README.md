@@ -249,6 +249,59 @@ pixelrag embed --shard-dir ./tiles --output-dir ./embeddings --gpu-ids 0,1
 pixelrag build-index --embeddings-dir ./embeddings --output-dir ./index
 ```
 
+### Qdrant backend
+
+[Qdrant](https://qdrant.tech) is an open-source vector search engine for high-performance and massive scale. [FAISS](https://ai.meta.com/tools/faiss/) remains the default for local indexes. Use Qdrant for configurable quantization, disk-backed vectors, payload filtering, and one collection shared by multiple PixelRAG servers.
+
+Quantization compresses vectors to reduce memory use and speed up search, with a recall tradeoff that depends on the method and settings.
+
+To configure quantization, pass any Qdrant `quantization_config` object in a JSON file.
+See Qdrant's [quantization guide](https://qdrant.tech/documentation/manage-data/quantization/#setting-up-quantization-in-qdrant) for supported methods and parameters.
+
+```json
+{
+  "scalar": {
+    "type": "int8",
+    "quantile": 0.99,
+    "always_ram": true
+  }
+}
+```
+
+```bash
+pip install 'pixelrag[serve,qdrant]'   # or 'pixelrag[index,qdrant]'
+
+# Build against a Qdrant server.
+# Start one locally with: docker run -p 6333:6333 qdrant/qdrant
+pixelrag build-index --embeddings-dir ./embeddings --output-dir ./index \
+    --backend qdrant --qdrant-url http://localhost:6333 --collection pixelrag \
+    --qdrant-quantization-config ./quantization.json
+
+# Add documents to an existing collection.
+pixelrag build-index --embeddings-dir ./more --output-dir ./index \
+    --backend qdrant --qdrant-url http://localhost:6333 --collection pixelrag --append
+
+# Replace an existing collection and its configuration.
+pixelrag build-index --embeddings-dir ./embeddings --output-dir ./index \
+    --backend qdrant --qdrant-url http://localhost:6333 --collection pixelrag --recreate
+
+# Serve the collection. PixelRAG reads the backend from summary.json.
+pixelrag serve --index-dir ./index --qdrant-url http://localhost:6333 \
+    --qdrant-client-config ./qdrant-client.json --port 30001
+```
+
+Configure the orchestrator in `pixelrag.yaml`:
+
+```yaml
+index:
+  backend: qdrant
+  qdrant_url: http://localhost:6333
+  collection: pixelrag
+  client_config: ./qdrant-client.json
+  quantization_config: ./quantization.json
+  # Set append: true or recreate: true when the collection already exists.
+```
+
 ### Training
 
 Fine-tuning lives in `train/` — a **separate uv project** (`wiki-screenshot-training`) with its own

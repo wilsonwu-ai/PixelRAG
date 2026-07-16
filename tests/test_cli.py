@@ -99,6 +99,15 @@ def test_pixelrag_unknown_stage_errors():
     assert "unknown" in (r.stdout + r.stderr).lower()
 
 
+def test_build_index_help_lists_qdrant_collection_modes():
+    r = _run("pixelrag", "build-index", "build", "--help")
+    assert r.returncode == 0
+    assert "--append" in r.stdout
+    assert "--recreate" in r.stdout
+    assert "--qdrant-client-config" in r.stdout
+    assert "--qdrant-quantization-config" in r.stdout
+
+
 def test_light_imports():
     # Core install must import without torch.
     import pixelrag  # noqa: F401
