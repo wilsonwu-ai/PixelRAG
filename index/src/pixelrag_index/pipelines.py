@@ -180,6 +180,40 @@ def build(config: dict, limit: int | None = None, force: bool = False) -> Path:
     if pdf_docs:
         logger.info("  Rendered %d PDFs", len(pdf_docs))
 
+    # Render local images (PNG/JPG) — copy/resize into the tile directory structure
+    if image_docs:
+        from PIL import Image as PILImage
+
+        _MAX_WIDTH = 4000  # cap large images to avoid VRAM pressure during embedding
+
+        for idx, doc in image_docs:
+            tile_dir = tiles_dir / f"{idx}.png.tiles"
+            if (tile_dir / "tiles.json").exists():
+                continue
+            tile_dir.mkdir(parents=True, exist_ok=True)
+            try:
+                img = PILImage.open(doc.path).convert("RGB")
+                # Resize if too wide
+                if img.width > _MAX_WIDTH:
+                    ratio = _MAX_WIDTH / img.width
+                    img = img.resize(
+                        (int(img.width * ratio), int(img.height * ratio)),
+                        PILImage.LANCZOS,
+                    )
+                tile_path = tile_dir / "tile_0000.jpg"
+                img.save(tile_path, "JPEG", quality=90)
+                manifest = {
+                    "url": doc.path,
+                    "page_height": img.height,
+                    "tiles": ["tile_0000.jpg"],
+                    "complete": True,
+                }
+                with open(tile_dir / "tiles.json", "w") as f:
+                    json.dump(manifest, f)
+            except Exception as e:
+                logger.warning("  FAILED image %s: %s", doc.id, e)
+        logger.info("  Rendered %d local images", len(image_docs))
+
     # Save articles.json for serve API — title + URL per article.
     # Use the pipeline's sequential *position index* (0, 1, 2, …) rather than
     # int(a["id"]), because local sources use filename stems (e.g. "art_alice")
