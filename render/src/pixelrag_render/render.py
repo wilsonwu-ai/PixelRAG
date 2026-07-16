@@ -198,8 +198,8 @@ def main() -> None:
         # Single URL, default CDP backend
         pixelshot https://example.com --output ./tiles
 
-        # Multiple inputs with 4 workers
-        pixelshot https://a.com https://b.com --output ./tiles --workers 4
+        # Multiple inputs
+        pixelshot https://a.com https://b.com --output ./tiles
 
         # PDF
         pixelshot report.pdf --output ./tiles
@@ -207,8 +207,8 @@ def main() -> None:
         # Local HTML
         pixelshot index.html --output ./tiles --backend playwright
 
-        # Pipe URLs from a file
-        cat urls.txt | xargs pixelshot --output ./tiles --workers 8
+        # URL file
+        pixelshot urls.txt --output ./tiles
 
         # Chrome management (folded from the former `pixelrag-chrome`)
         pixelshot install-chrome   # download the patched headless Chrome
@@ -311,18 +311,25 @@ def main() -> None:
     args = parser.parse_args()
     output_dir = Path(args.output)
 
-    # Partition inputs into URLs and files for batch processing
     urls = []
     files = []
     for inp in args.inputs:
-        if inp.startswith("http://") or inp.startswith("https://"):
+        if inp.lower().endswith(".txt"):
+            try:
+                with open(inp, encoding="utf-8") as f:
+                    for line in f:
+                        url = line.strip()
+                        if url:
+                            urls.append(url)
+            except FileNotFoundError:
+                parser.error(f"URL file not found: {inp}")
+        elif inp.startswith("http://") or inp.startswith("https://"):
             urls.append(inp)
         else:
             files.append(Path(inp))
 
     results: list[Path] = []
 
-    # Batch-render URLs together for efficiency
     if urls:
         logger.info(
             "Rendering %d URL(s) with backend=%s workers=%d",
